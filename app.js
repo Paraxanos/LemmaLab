@@ -755,7 +755,15 @@ function startRefuter() {
   }
 
   // Create new worker (non-module to maximize compatibility)
-  worker = new Worker('worker.js');
+  worker = new Worker('/worker.js');
+
+  worker.onerror = (e) => {
+    console.error('Worker error:', e);
+    showError('Auto-Refuter could not be initialized. This may be due to a script loading error or security policy.');
+    appState.update({
+      refuter: { ...appState.state.refuter, status: 'idle' }
+    });
+  };
 
   appState.update({
     refuter: { status: 'running', results: [] }
