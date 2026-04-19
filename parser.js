@@ -596,6 +596,13 @@ export function compileCFG(specText) {
   return {
     type: 'CYK',
     accepts,
-    meta: { cfg, cnf }
+    meta: {
+      cfg: { ...cfg, terminals: [...cfg.terminals], nonterminals: [...cfg.nonterminals] },
+      cnf: { ...cnf, terminals: [...cnf.terminals], nonterminals: [...cnf.nonterminals] },
+      model: {
+        start: cnf.start,
+        rules: cnf.rules
+      }
+    }
   };
 }

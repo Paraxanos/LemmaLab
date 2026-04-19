@@ -798,29 +798,42 @@ function startRefuter() {
 
   // Prepare spec for worker
   let workerSpec;
-  if (state.compiled?.meta?.isManualOracle) {
-    // For manual oracles (irregular languages), serialize membership function
+  const meta = state.compiled?.meta;
+
+  if (meta?.isManualOracle) {
+    // For manual oracles (irregular languages), robustly serialize membership function
     const tmpl = LANGUAGE_TEMPLATES.find(t => t.name === DOM.templateInput.value);
     if (tmpl && tmpl.membership) {
-      const fnBody = tmpl.membership.toString().match(/\{([\s\S]*)\}$/)?.[1] || 'return false';
+      let fnStr = tmpl.membership.toString();
+      // Handle (s) => expr vs (s) => { return expr; } vs function(s) { ... }
+      let fnBody;
+      if (fnStr.includes('=>')) {
+        const parts = fnStr.split('=>');
+        const rhs = parts.slice(1).join('=>').trim();
+        fnBody = rhs.startsWith('{') ? rhs.match(/^\{([\s\S]*)\}$/)?.[1] : `return ${rhs}`;
+      } else {
+        fnBody = fnStr.match(/\{([\s\S]*)\}$/)?.[1] || 'return false';
+      }
       workerSpec = { type: 'MEMBERSHIP', membershipBody: fnBody };
     } else {
       showError('Cannot serialize membership function for worker.');
       return;
     }
   } else {
-    workerSpec = { ...state.spec };
+    // Pass the pre-compiled model (DFA or CNF rules)
+    workerSpec = {
+      type: state.spec.type,
+      model: meta?.model
+    };
   }
 
-  const alphabet = state.compiled?.meta?.alphabet
-    ? state.compiled.meta.alphabet.split('')
-    : extractAlphabet(state.spec.source || 'ab');
+  const alphabet = meta?.alphabet ? meta.alphabet.split('') : ['a', 'b'];
 
   worker.postMessage({
     type: 'START',
     spec: workerSpec,
     p: state.p,
-    alphabet: alphabet.length > 0 ? alphabet : ['a', 'b'],
+    alphabet: alphabet,
     maxLen: 15,
     maxResults: 3,
     mode: state.mode

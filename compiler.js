@@ -638,7 +638,15 @@ export function compileRegex(pattern) {
     meta: {
       nfaStates,
       dfaStates: dfa.states.length,
-      minDfaStates: minDfa.states.length
+      minDfaStates: minDfa.states.length,
+      alphabet: [...alphabet].sort().join(''),
+      model: {
+        start: minDfa.start,
+        accepting: [...minDfa.accepting],
+        transitions: Object.fromEntries(
+          [...minDfa.transitions].map(([from, map]) => [from, Object.fromEntries(map)])
+        )
+      }
     }
   };
 }
