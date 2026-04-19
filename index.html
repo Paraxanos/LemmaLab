@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LemmaLab — Interactive Pumping Lemma Simulator</title>
+  <meta name="description" content="LemmaLab is an interactive proof arena for the Pumping Lemma. Simulate decompositions, test membership, and auto-refute for Regular and Context-Free languages.">
+  <meta name="keywords" content="Pumping Lemma, Regular Languages, Context-Free Languages, Automata Theory, Formal Languages, Interactive Proof">
+  <meta name="author" content="LemmaLab">
+  <meta name="theme-color" content="#3B5BDB">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="LemmaLab — Interactive Pumping Lemma Simulator">
+  <meta property="og:description" content="Simulate, decompose, and prove with the Pumping Lemma for Regular and Context-Free languages.">
+  <meta property="og:type" content="website">
+
+  <!-- Preconnect for fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Favicon (inline SVG data URI) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%233B5BDB'/><text x='16' y='23' font-family='monospace' font-size='18' font-weight='bold' fill='white' text-anchor='middle'>λ</text></svg>">
+</head>
+<body>
+  <div class="app-layout" id="app-layout">
+    <!-- ═══ HEADER ═══ -->
+    <header class="app-header" role="banner">
+      <a class="logo" href="/" aria-label="LemmaLab Home">
+        <div class="logo-icon" aria-hidden="true">λ</div>
+        <div class="logo-text">Lemma<span>Lab</span></div>
+      </a>
+
+      <div class="header-controls">
+        <div class="mode-toggle" role="tablist" aria-label="Pumping Lemma mode">
+          <button class="mode-toggle-btn active" id="btn-mode-regular" role="tab" aria-selected="true" data-mode="REGULAR">
+            Regular
+          </button>
+          <button class="mode-toggle-btn" id="btn-mode-cfl" role="tab" aria-selected="false" data-mode="CFL">
+            Context-Free
+          </button>
+        </div>
+
+        <button class="sidebar-toggle" id="btn-sidebar-toggle" aria-label="Toggle theory sidebar">
+          📖
+        </button>
+
+        <button class="theme-toggle" id="btn-theme-toggle" aria-label="Toggle dark mode">
+          🌙
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══ MAIN PANE ═══ -->
+    <main class="main-pane" id="main-pane">
+
+      <!-- Language Specification Card -->
+      <section class="card" id="card-spec" aria-label="Language specification">
+        <h1 class="card-title">
+          <span class="icon">📐</span>
+          Language Specification
+        </h1>
+
+        <!-- Template Selector -->
+        <div class="form-row">
+          <label for="template-input">Load Template</label>
+          <div class="template-selector" id="template-selector">
+            <input type="text" id="template-input" class="template-input"
+                   placeholder="Search templates…" autocomplete="off" readonly
+                   aria-haspopup="listbox" aria-expanded="false">
+            <div class="template-dropdown" id="template-dropdown" role="listbox">
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Spec Input -->
+        <div class="form-row" id="spec-input-row">
+          <label for="spec-input" id="spec-label">Regular Expression</label>
+          <textarea id="spec-input" placeholder="e.g. (a|b)*aa(a|b)*"
+                    aria-describedby="spec-help" rows="2"></textarea>
+          <div class="form-help" id="spec-help">
+            Enter a regular expression. Use | for alternation, * for Kleene star, + for one-or-more, ? for optional.
+          </div>
+        </div>
+
+        <!-- Pumping Length & String -->
+        <div class="form-row-inline">
+          <div class="form-row">
+            <label for="input-p">Pumping Length (p)</label>
+            <input type="number" id="input-p" min="1" max="20" value="2" step="1">
+          </div>
+          <div class="form-row" style="flex:3">
+            <label for="input-w">String w (|w| ≥ p)</label>
+            <input type="text" id="input-w" placeholder="Enter string w…"
+                   aria-describedby="w-help">
+            <div class="form-help" id="w-help">
+              String length must be at least p.
+            </div>
+          </div>
+        </div>
+
+        <!-- Compile Button -->
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn btn-primary" id="btn-compile">
+            <span id="compile-text">Compile Language</span>
+          </button>
+          <span id="compile-status" class="text-muted" style="font-size:var(--fs-label);align-self:center;"></span>
+        </div>
+
+        <!-- Error Banner -->
+        <div class="error-banner" id="error-banner" role="alert"></div>
+      </section>
+
+      <!-- String Timeline Card -->
+      <section class="card" id="card-timeline" aria-label="String decomposition timeline">
+        <h2 class="card-title">
+          <span class="icon">🎯</span>
+          <span id="timeline-title">String Decomposition (w = xyz)</span>
+        </h2>
+        <div class="timeline-container" id="timeline-container">
+          <!-- SVG timeline rendered by timeline.js -->
+        </div>
+      </section>
+
+      <!-- Constraint Dashboard -->
+      <section class="card" id="card-constraints" aria-label="Constraint validation">
+        <h2 class="card-title">
+          <span class="icon">✅</span>
+          Constraint Dashboard
+        </h2>
+        <div class="constraint-dashboard" id="constraint-dashboard">
+          <!-- Populated by app.js -->
+        </div>
+      </section>
+
+      <!-- Pumping Slider -->
+      <section class="card" id="card-pumping" aria-label="Pumping value selector">
+        <h2 class="card-title">
+          <span class="icon">🔄</span>
+          Pump Value (i)
+        </h2>
+        <div class="pump-slider-section">
+          <span class="pump-slider-label" id="pump-i-label">i = 1</span>
+          <button class="pump-slider-stepper" id="btn-pump-minus" aria-label="Decrease i">−</button>
+          <input type="range" id="pump-slider" min="0" max="8" value="1" step="1"
+                 aria-label="Pumping value i" aria-valuemin="0" aria-valuemax="8" aria-valuenow="1">
+          <button class="pump-slider-stepper" id="btn-pump-plus" aria-label="Increase i">+</button>
+        </div>
+        <div class="pump-result" id="pump-result">
+          <!-- Shows pumped string -->
+        </div>
+      </section>
+
+      <!-- Auto-Refuter Panel -->
+      <section class="card" id="card-refuter" aria-label="Auto-Refuter">
+        <div class="collapsible-header open" id="refuter-toggle">
+          <h2 class="card-title" style="margin-bottom:0">
+            <span class="icon">🔍</span>
+            Auto-Refuter
+          </h2>
+          <span class="chevron" aria-hidden="true">▾</span>
+        </div>
+        <div class="collapsible-body open" id="refuter-body">
+          <p class="form-help mb-4">
+            Searches for a string w that defeats ALL valid decompositions.
+            Useful for proving a language is <em>not</em> in the claimed class.
+          </p>
+          <div class="refuter-header">
+            <button class="btn btn-primary" id="btn-refuter-start">
+              Run Auto-Refuter
+            </button>
+            <button class="btn btn-danger hidden" id="btn-refuter-cancel">
+              Cancel
+            </button>
+          </div>
+          <div class="progress-bar hidden" id="refuter-progress-bar">
+            <div class="progress-bar-fill" id="refuter-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="refuter-status" id="refuter-status"></div>
+          <div class="refuter-results" id="refuter-results">
+            <!-- Results populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Proof Tree Card -->
+      <section class="card" id="card-proof" aria-label="Formal proof">
+        <div class="collapsible-header open" id="proof-toggle">
+          <h2 class="card-title" style="margin-bottom:0">
+            <span class="icon">📜</span>
+            Formal Proof
+          </h2>
+          <span class="chevron" aria-hidden="true">▾</span>
+        </div>
+        <div class="collapsible-body open" id="proof-body">
+          <div class="proof-tree" id="proof-tree">
+            <!-- Proof steps rendered here -->
+          </div>
+          <div class="proof-export-buttons" id="proof-export-buttons">
+            <button class="btn btn-outline btn-sm" id="btn-copy-latex">Copy LaTeX</button>
+            <button class="btn btn-outline btn-sm" id="btn-copy-md">Copy Markdown</button>
+            <button class="btn btn-outline btn-sm" id="btn-download-tex">Download .tex</button>
+            <button class="btn btn-outline btn-sm" id="btn-download-md">Download .md</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar" id="sidebar" role="complementary" aria-label="Theory reference">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Theory Reference</div>
+        <div class="theory-panel" id="theory-panel">
+          <div class="theory-title" id="theory-title">
+            📐 Pumping Lemma for Regular Languages
+          </div>
+          <div class="quantifier-block" id="quantifier-block">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Segment Colors</div>
+        <div class="color-legend" id="color-legend">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Quick Reference</div>
+        <div style="font-size:var(--fs-body-sm);color:var(--color-text-secondary);line-height:1.7">
+          <p><strong>Regular Mode:</strong> w = xyz</p>
+          <p style="margin-left:12px">• |y| ≥ 1 (y is non-empty)</p>
+          <p style="margin-left:12px">• |xy| ≤ p (prefix bounded)</p>
+          <p style="margin-left:12px">• ∀i ≥ 0: xy<sup>i</sup>z ∈ L</p>
+          <br>
+          <p><strong>CFL Mode:</strong> w = uvxyz</p>
+          <p style="margin-left:12px">• |vy| ≥ 1 (v or y non-empty)</p>
+          <p style="margin-left:12px">• |vxy| ≤ p (middle bounded)</p>
+          <p style="margin-left:12px">• ∀i ≥ 0: uv<sup>i</sup>xy<sup>i</sup>z ∈ L</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  </div>
+
+  <!-- App entry point -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
