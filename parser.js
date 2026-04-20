@@ -33,8 +33,23 @@ export function parseCFG(text) {
   const nonterminals = new Set();
   let start = null;
 
+  // Pass 1: Identify all nonterminals from LHS
   for (const line of lines) {
-    // Split on → or ->
+    const match = line.match(/^([A-Z][A-Z0-9_']*)\s*(?:→|->)\s*(.+)$/);
+    if (match) {
+      const lhs = match[1].trim();
+      if (start === null) start = lhs;
+      nonterminals.add(lhs);
+      if (!rules[lhs]) rules[lhs] = [];
+    }
+  }
+
+  if (!start) {
+    throw new Error("No production rules found. CFG must have at least one rule like 'S -> alpha'.");
+  }
+
+  // Pass 2: Tokenize using the full nonterminal set
+  for (const line of lines) {
     const match = line.match(/^([A-Z][A-Z0-9_']*)\s*(?:→|->)\s*(.+)$/);
     if (!match) {
       throw new Error(`Malformed production rule: "${line}". Expected format: A -> α | β`);
@@ -42,12 +57,6 @@ export function parseCFG(text) {
     const lhs = match[1].trim();
     const rhsText = match[2].trim();
 
-    if (start === null) start = lhs;
-    nonterminals.add(lhs);
-
-    if (!rules[lhs]) rules[lhs] = [];
-
-    // Split by | (but respect within productions; we do a simple split)
     const alternatives = splitAlternatives(rhsText);
 
     for (const alt of alternatives) {
@@ -123,7 +132,21 @@ function tokenizeProduction(rhs, knownNonterminals) {
       continue;
     }
 
-    // Check for multi-char nonterminal (uppercase start)
+    // Try maximal munch for known nonterminals
+    let longestMatch = '';
+    for (const nt of knownNonterminals) {
+      if (rhs.startsWith(nt, i) && nt.length > longestMatch.length) {
+        longestMatch = nt;
+      }
+    }
+
+    if (longestMatch) {
+      symbols.push(longestMatch);
+      i += longestMatch.length;
+      continue;
+    }
+
+    // Fallback: Check for potential multi-char nonterminal (uppercase start)
     if (/[A-Z]/.test(rhs[i])) {
       let sym = rhs[i];
       i++;
